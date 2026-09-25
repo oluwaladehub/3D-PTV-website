@@ -22,7 +22,7 @@ function getPipeline() {
       transparent: true,
       depthTest: false,
       uniforms: {
-        sheet: { value: null }, frame: { value: 0 }, family: { value: 0 },
+        sheet: { value: null }, frame: { value: 0 }, family: { value: 0 }, single: { value: false },
         sway: { value: 0 }, flutter: { value: 0 }, time: { value: 0 },
       },
       vertexShader: `
@@ -58,6 +58,7 @@ function getPipeline() {
       fragmentShader: `
         uniform sampler2D sheet;
         uniform float frame;
+        uniform bool single;
         varying vec2 garmentUv;
         void main() {
           float col = mod(frame, 4.0);
@@ -65,7 +66,7 @@ function getPipeline() {
           // Keep atlas samples inside the selected view, including at its edges.
           vec2 localUv = clamp(garmentUv, vec2(0.001), vec2(0.999));
           vec2 atlasUv = vec2((col + localUv.x) / 4.0, (2.0 - row + localUv.y) / 3.0);
-          gl_FragColor = texture2D(sheet, atlasUv);
+          gl_FragColor = texture2D(sheet, single ? localUv : atlasUv);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }
@@ -123,6 +124,7 @@ export function createClothMotion(art, image, product) {
     const uniforms = gpu.material.uniforms;
     uniforms.sheet.value = texture;
     uniforms.frame.value = frame;
+    uniforms.single.value = image.dataset.single === 'true';
     uniforms.family.value = currentProduct.family === 'cargo' ? 2 : currentProduct.family === 'tee' ? 1 : 0;
     uniforms.sway.value = displacement;
     uniforms.flutter.value = energy;
@@ -141,7 +143,8 @@ export function createClothMotion(art, image, product) {
       }
       if (!enabled || !visible || document.hidden || preference.matches || unavailable || !context || !image.complete || !image.naturalWidth || !amount) return;
       if (!active.has(api)) {
-        size = Math.max(1, Math.min(900, Math.round(art.clientWidth * Math.min(devicePixelRatio || 1, 1.5))));
+        const hero = art.closest('.rotation-hero');
+        size = Math.max(1, Math.min(hero ? 1800 : 900, Math.round(art.clientWidth * Math.min(devicePixelRatio || 1, hero ? 2 : 1.5))));
         canvas.width = canvas.height = size;
         lastTime = performance.now();
       }

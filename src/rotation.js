@@ -8,7 +8,7 @@ const viewName = frame => frame === 0 ? 'Front' : frame === 6 ? 'Back' : frame =
 export function viewerMarkup(product, { compact = false, hero = false } = {}) {
   return `<div class="rotation-viewer ${compact ? 'rotation-compact' : ''} ${hero ? 'rotation-hero' : ''}">
     <div class="rotation-surface" tabindex="0" role="slider" aria-label="Rotate ${product.name}, ${product.color}" aria-valuemin="0" aria-valuemax="330" aria-valuenow="0" aria-valuetext="Front, 0 degrees" aria-orientation="horizontal" aria-description="Drag left or right, or use the arrow keys to rotate. Home shows the front; End shows the back.">
-      ${artwork(product, 'rotation-art', hero ? 'eager' : 'lazy')}
+      ${artwork(product, 'rotation-art', hero ? 'eager' : 'lazy', hero)}
       <span class="rotation-loading">Loading views…</span>
     </div>
     <div class="rotation-toolbar"><span class="rotation-hint">↔ <span>Drag to rotate</span></span><span class="rotation-reading">Front · 0°</span><div class="rotation-actions"><button type="button" data-view="0" aria-label="Show front" aria-pressed="true">Front</button><button type="button" data-view="6" aria-label="Show back" aria-pressed="false">Back</button><button type="button" class="rotation-play" aria-label="Start automatic rotation" aria-pressed="false">↻</button></div></div>
@@ -26,10 +26,16 @@ export function mountViewer(root, initialProduct) {
   const play = root.querySelector('.rotation-play');
   const reading = root.querySelector('.rotation-reading');
   const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+  const isHero = root.classList.contains('rotation-hero');
   const cloth = createClothMotion(art, image, initialProduct);
   function render(value, animate = true) {
     const previousFrame = frame;
     frame = wrap(Math.round(value));
+    const single = isHero && frame === 0;
+    const source = single ? product.heroImage : product.sheet;
+    art.classList.toggle('hero-front', single);
+    image.dataset.single = String(single);
+    if (image.getAttribute('src') !== source) { image.src = source; ready(); }
     cloth.setFrame(frame);
     if (animate && frame !== previousFrame) {
       const step = (frame - previousFrame + 18) % FRAMES - 6;
@@ -99,7 +105,7 @@ export function mountViewer(root, initialProduct) {
     cloth.setProduct(next);
     product = next; setPlaying(false);
     art.className = `product-art rotation-art ${product.className}`;
-    image.src = product.sheet;
+    if (isHero) { const preload = new Image(); preload.src = product.sheet; }
     surface.setAttribute('aria-label', `Rotate ${product.name}, ${product.color}`);
     ready(); render(0, false);
   }

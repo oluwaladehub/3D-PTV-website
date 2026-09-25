@@ -9,6 +9,9 @@ test('desktop storefront, finish selection, search, and persistent bag', async (
   await expect(page.locator('.rotation-hero img')).toBeVisible();
   await expect(page.locator('.rotation-hero img')).toHaveJSProperty('complete', true);
   expect(await page.locator('.rotation-hero img').evaluate(image => image.naturalWidth > 0)).toBe(true);
+  await expect(page.locator('.rotation-hero .rotation-toolbar')).toBeHidden();
+  await expect(page.locator('.hero-copy')).toBeVisible();
+  expect(await page.locator('.rotation-hero img').evaluate(image => image.naturalWidth >= image.clientWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Next finish' }).click();
   await expect(page.locator('.annotation-finish')).toHaveText('Stone');
@@ -36,8 +39,8 @@ test('desktop storefront, finish selection, search, and persistent bag', async (
 });
 
 async function dragToBack(page, viewer) {
-  await viewer.getByRole('button', { name: 'Show front', exact: true }).click();
   const surface = viewer.getByRole('slider');
+  await surface.press('Home');
   const box = await surface.boundingBox();
   const startX = box.x + box.width * .2;
   const y = box.y + box.height * .5;
@@ -179,7 +182,9 @@ test('mobile layout and keyboard-friendly shopping', async ({ page }) => {
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: 'test-results/mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.getByRole('link', { name: 'Explore the drop' }).click();
+  await expect(page.locator('.hero-copy')).toBeHidden();
+  await expect(page.locator('.rotation-hero .rotation-toolbar')).toBeHidden();
+  await page.getByRole('link', { name: 'Shop', exact: true }).click();
   await expect(page.locator('#collection')).toBeInViewport();
   await page.locator('[data-product="0"]').first().click();
   await expect(page.locator('.product-dialog')).toBeVisible();
